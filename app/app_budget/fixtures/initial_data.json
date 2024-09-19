@@ -1,0 +1,44 @@
+[
+    {
+        "model": "app_budget.annualbudget",
+        "pk": 1,
+        "fields": {
+            "year": 2567,
+            "work_group": "IT Group",
+            "office": "Office of Management",
+            "office_unit": "Central Office",
+            "income_budget": 100000.00,
+            "operational_expense": 50000.00,
+            "procurement_expense": 30000.00
+        }
+    },
+    {
+        "model": "app_budget.plan",
+        "pk": 1,
+        "fields": {
+            "annual_budget": 1,
+            "plan_name": "Development Plan",
+            "plan_code": "DEV123",
+            "income_budget": 150000.00,
+            "operational_expense": 80000.00,
+            "procurement_expense": 40000.00,
+            "contract_start_date": "2024-01-01",
+            "contract_end_date": "2025-01-01"
+        }
+    },
+    {
+        "model": "app_budget.project",
+        "pk": 1,
+        "fields": {
+            "annual_budget": 1,
+            "plan": 1,
+            "project_name": "Bridge Construction",
+            "project_code": "BRIDGE001",
+            "income_budget": 200000.00,
+            "operational_expense": 120000.00,
+            "procurement_expense": 60000.00,
+            "contract_start_date": "2024-01-01",
+            "contract_end_date": "2025-01-01"
+        }
+    }
+]
