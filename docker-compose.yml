@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data/
+    environment:
+      - TZ=Asia/Bangkok
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django_dev
+  redis:
+    restart: unless-stopped
+    image: redis:7.0.5-alpine 
+    volumes:
+      - redis_data_dev:/data
+    expose:
+      - 6379
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
