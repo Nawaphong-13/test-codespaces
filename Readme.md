@@ -26,11 +26,15 @@
 
 # Docker
 > docker-compose up --build
+
 > docker-compose down
 
 > docker-compose exec web python manage.py migrate --noinput
+
 > docker-compose exec web python manage.py createsuperuser
+
 > docker-compose exec web python manage.py makemigrations app_name
+
 > docker-compose exec web python manage.py migrate app_name
 
 > docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --no-input --clear
