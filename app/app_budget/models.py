@@ -1,5 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image as PILImage
+from io import BytesIO
+import os, random, string
 
 class BudgetYear(models.Model):
     fiscal_year = models.CharField(max_length=255, verbose_name="ปีงบประมาณ")
@@ -180,11 +184,58 @@ class File(models.Model):
 class Image(models.Model):
     invoice = models.ForeignKey(Invoice, related_name="images", on_delete=models.CASCADE)
     file = models.ImageField(upload_to='uploads/images/%Y/%m/%d/', null=True, blank=True, verbose_name='รูปภาพประกอบ')
-    # file_name_original = models.CharField(max_length=255, verbose_name="ชื่อไฟล์เดิม")
-    # file_type = models.CharField(max_length=50, verbose_name="ประเภทไฟล์")
-    # file_size = models.PositiveIntegerField(verbose_name="ขนาดไฟล์")
-    # created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="added_images", verbose_name="ผู้เพิ่มข้อมูล")
+    file_name_original = models.CharField(max_length=255, verbose_name="ชื่อไฟล์เดิม")
+    file_type = models.CharField(max_length=50, verbose_name="ประเภทไฟล์")
+    file_size = models.PositiveIntegerField(verbose_name="ขนาดไฟล์")
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="added_images", verbose_name="ผู้เพิ่มข้อมูล")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่สร้าง")
 
-    # def __str__(self):
-    #     return self.pk
+    class Meta:
+        verbose_name = 'รูปภาพประกอบ'
+        verbose_name_plural = 'รูปภาพประกอบ'
+
+    def save(self, *args, **kwargs):
+        if self.file:
+            self.file_type = self.file.file.content_type
+            self.file_size = self.file.size
+            # Save original file name before renaming
+            count = Image.objects.filter(file_name_original=self.file.name).count()
+            if count > 0:
+                base_name, extension = os.path.splitext(self.file.name)
+                self.file_name_original = f"{base_name}({count}){extension}"
+            else:
+                self.file_name_original = self.file.name
+            self.process_image()
+        super().save(*args, **kwargs)
+    
+    def generate_random_string(self, length):
+        characters = string.ascii_letters + string.digits
+        random_str = ''.join(random.choices(characters, k=length))
+        return random_str
+
+    def process_image(self):
+        if self.file:
+            # Open the image
+            img = PILImage.open(self.file)
+            # Convert to RGB if image has alpha channel
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            # Resize the image
+            # Calculate new dimensions (20% of original size)
+            original_width, original_height = img.size
+            new_width = int(original_width * 1)
+            new_height = int(original_height * 1)
+            output_size = (new_width, new_height)
+            # Resize the image
+            img.thumbnail(output_size, PILImage.Resampling.LANCZOS)
+            # Convert image back to InMemoryUploadedFile to save to ImageField
+            image_io = BytesIO()
+            img.save(image_io, format='WEBP', quality=80)
+            image_io.seek(0)
+            # Set the image field to the new resized image
+            self.file = InMemoryUploadedFile(
+                image_io, 'ImageField', f"{self.generate_random_string(12)}.webp", 'image/webp', image_io.getbuffer().nbytes, None
+            )
+            
+    def __str__(self):
+        return f"self.file_name_original"

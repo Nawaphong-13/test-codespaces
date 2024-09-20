@@ -48,8 +48,10 @@ class MonthlyPlanAdmin(admin.ModelAdmin):
 
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
-    list_display = ('file', 'created_at')
-    search_fields = ('file_nfileame_original',)
+    fields = ('invoice', 'file', 'file_name_original', 'file_type', 'file_size', 'created_at',)
+    readonly_fields = ('file_name_original', 'file_type', 'file_size', 'created_at')
+    list_display = ('file_name_original', 'file_type', 'file_size', 'created_at')
+    search_fields = ('file_name_original',)
 
 @admin.register(TypeInvoice)
 class TypeInvoiceAdmin(admin.ModelAdmin):
@@ -68,6 +70,11 @@ class TypeInvoiceAdmin(admin.ModelAdmin):
 
 class ImageInline(ImageUploaderInline):
     model = Image
+    fields = ('file',)
+    can_delete = True
+    def has_delete_permission(self, request, obj=None):
+        return True
+
     
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
