@@ -182,60 +182,76 @@ class File(models.Model):
         return self.file_name_original
 
 class Image(models.Model):
-    invoice = models.ForeignKey(Invoice, related_name="images", on_delete=models.CASCADE)
-    file = models.ImageField(upload_to='uploads/images/%Y/%m/%d/', null=True, blank=True, verbose_name='รูปภาพประกอบ')
+    invoice = models.ForeignKey(Invoice, related_name="items", on_delete=models.CASCADE)
+    file_original = models.ImageField(upload_to='uploads/images/original/%Y/%m/%d/', verbose_name='รูปภาพประกอบ')
+    file = models.ImageField(upload_to='uploads/images/%Y/%m/%d/', verbose_name='รูปภาพประกอบ')
     file_name_original = models.CharField(max_length=255, verbose_name="ชื่อไฟล์เดิม")
     file_type = models.CharField(max_length=50, verbose_name="ประเภทไฟล์")
     file_size = models.PositiveIntegerField(verbose_name="ขนาดไฟล์")
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="added_images", verbose_name="ผู้เพิ่มข้อมูล")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่สร้าง")
+    order = models.PositiveIntegerField("Order", default=1)
 
     class Meta:
         verbose_name = 'รูปภาพประกอบ'
         verbose_name_plural = 'รูปภาพประกอบ'
 
     def save(self, *args, **kwargs):
-        if self.file:
-            self.file_type = self.file.file.content_type
-            self.file_size = self.file.size
-            # Save original file name before renaming
-            count = Image.objects.filter(file_name_original=self.file.name).count()
-            if count > 0:
-                base_name, extension = os.path.splitext(self.file.name)
-                self.file_name_original = f"{base_name}({count}){extension}"
-            else:
-                self.file_name_original = self.file.name
-            self.process_image()
+        if self.file_original:
+            try:
+                # Save the original file type and size from the original image
+                self.file_type = self.file_original.file.content_type
+                self.file_size = self.file_original.size
+
+                # Save the original filename
+                original_name = self.file_original.name
+                base_name, extension = os.path.splitext(original_name)
+
+                # Handle filename conflicts by appending a count
+                count = Image.objects.filter(file_name_original=original_name).count()
+                if count > 0:
+                    self.file_name_original = f"{base_name}({count}){extension}"
+                else:
+                    self.file_name_original = original_name
+
+                # Process the image (resize, convert, etc.) before saving to `file`
+                self.process_image()
+            except:
+                pass
         super().save(*args, **kwargs)
-    
+
     def generate_random_string(self, length):
         characters = string.ascii_letters + string.digits
-        random_str = ''.join(random.choices(characters, k=length))
-        return random_str
+        return ''.join(random.choices(characters, k=length))
 
     def process_image(self):
-        if self.file:
-            # Open the image
-            img = PILImage.open(self.file)
-            # Convert to RGB if image has alpha channel
+        if self.file_original:
+            # Open the original image
+            img = PILImage.open(self.file_original)
+
+            # Convert image to RGB if it has an alpha channel
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
-            # Resize the image
-            # Calculate new dimensions (20% of original size)
+
+            # Resize the image (you can adjust the resizing logic as needed)
             original_width, original_height = img.size
-            new_width = int(original_width * 1)
+            new_width = int(original_width * 1)  # Adjust resize factor if needed
             new_height = int(original_height * 1)
             output_size = (new_width, new_height)
-            # Resize the image
+
+            # Resize the image while preserving the aspect ratio
             img.thumbnail(output_size, PILImage.Resampling.LANCZOS)
-            # Convert image back to InMemoryUploadedFile to save to ImageField
+
+            # Save the processed image to an in-memory file as WEBP
             image_io = BytesIO()
             img.save(image_io, format='WEBP', quality=80)
             image_io.seek(0)
-            # Set the image field to the new resized image
+
+            # Save the processed image to the `file` field
             self.file = InMemoryUploadedFile(
-                image_io, 'ImageField', f"{self.generate_random_string(12)}.webp", 'image/webp', image_io.getbuffer().nbytes, None
+                image_io, 'ImageField', f"{self.generate_random_string(12)}.webp", 'image/webp',
+                image_io.getbuffer().nbytes, None
             )
-            
+
     def __str__(self):
-        return f"self.file_name_original"
+        return self.file_name_original

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     'app_budget.apps.AppBudgetConfig',
+    'app_test.apps.AppTestConfig',
     
     'image_uploader_widget',
 ]
